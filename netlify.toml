@@ -12,12 +12,48 @@
 [build.environment]
   NODE_VERSION = "18"
 
-# Single Page Application routing (all routes serve index.html)
+
+
+# Ensure static assets are served directly and not rewritten to index.html
+[[redirects]]
+
+  from = "/assets/*"
+
+  to = "/assets/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/images/*"
+  to = "/images/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/fonts/*"
+  to = "/fonts/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/favicon.ico"
+  to = "/favicon.ico"
+  status = 200
+
+[[redirects]]
+  from = "/robots.txt"
+  to = "/robots.txt"
+  status = 200
+
+[[redirects]]
+  from = "/vite.svg"
+  to = "/vite.svg"
+  status = 200
+
+# SPA fallback for application routes
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
-  force = true
+
+
 
 # Global security headers
 [[headers]]

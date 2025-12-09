@@ -1,7 +1,8 @@
-import React from 'react';
-import type { ChatMessage } from '../types';
-import Badge from './Badge';
-import Button from './Button';
+import React from "react";
+
+import type { ChatMessage } from "../types";
+
+import Badge from "./Badge";
 
 interface ChatBubbleProps {
   message: ChatMessage;
@@ -9,8 +10,8 @@ interface ChatBubbleProps {
 }
 
 const ChatBubble: React.FC<ChatBubbleProps> = ({ message, onQuickReply }) => {
-  const isUser = message.sender === 'user';
-  const isSystem = message.sender === 'system';
+  const isUser = message.sender === "user";
+  const isSystem = message.sender === "system";
 
   if (isSystem) {
     return (
@@ -25,7 +26,7 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ message, onQuickReply }) => {
   return (
     <div
       className={`flex gap-3 mb-4 chat-bubble-enter ${
-        isUser ? 'flex-row-reverse' : 'flex-row'
+        isUser ? "flex-row-reverse" : "flex-row"
       }`}
     >
       {/* Avatar */}
@@ -38,39 +39,45 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ message, onQuickReply }) => {
       )}
 
       {/* Message Content */}
-      <div className={`flex flex-col max-w-[70%] ${isUser ? 'items-end' : 'items-start'}`}>
+      <div
+        className={`flex flex-col max-w-[70%] ${isUser ? "items-end" : "items-start"}`}
+      >
         {/* Bubble */}
         <div
           className={`px-4 py-3 rounded-2xl ${
             isUser
-              ? 'bg-primary-500 text-white rounded-tr-sm'
-              : 'bg-white border border-gray-200 text-gray-900 rounded-tl-sm shadow-sm'
+              ? "bg-primary-500 text-white rounded-tr-sm"
+              : "bg-white border border-gray-200 text-gray-900 rounded-tl-sm shadow-sm"
           }`}
         >
-          <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.text}</p>
+          <p className="text-sm leading-relaxed whitespace-pre-wrap">
+            {message.text}
+          </p>
 
           {/* Loan Summary Card (special message type) */}
-          {message.type === 'loan-summary' && message.meta && (
+          {message.type === "loan-summary" && message.meta && (
             <div className="mt-3 pt-3 border-t border-gray-200 space-y-2">
               {message.meta.loanAmount && (
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Loan Amount:</span>
                   <span className="font-semibold">
-                    ₹{message.meta.loanAmount.toLocaleString('en-IN')}
+                    ₹{message.meta.loanAmount.toLocaleString("en-IN")}
                   </span>
                 </div>
               )}
               {message.meta.tenure && (
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Tenure:</span>
-                  <span className="font-semibold">{message.meta.tenure} months</span>
+                  <span className="font-semibold">
+                    {message.meta.tenure} months
+                  </span>
                 </div>
               )}
               {message.meta.emi && (
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">EMI:</span>
                   <span className="font-semibold">
-                    ₹{message.meta.emi.toLocaleString('en-IN')}
+                    ₹{message.meta.emi.toLocaleString("en-IN")}
                   </span>
                 </div>
               )}
@@ -87,7 +94,7 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ message, onQuickReply }) => {
         </div>
 
         {/* Quick Reply Buttons */}
-        {message.type === 'quick-reply' && message.meta?.buttons && (
+        {message.type === "quick-reply" && message.meta?.buttons && (
           <div className="flex flex-wrap gap-2 mt-3">
             {message.meta.buttons.map((button) => (
               <button
@@ -103,9 +110,9 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ message, onQuickReply }) => {
 
         {/* Timestamp */}
         <span className="text-xs text-gray-500 mt-1.5 px-1">
-          {new Date(message.timestamp).toLocaleTimeString('en-US', {
-            hour: 'numeric',
-            minute: '2-digit',
+          {new Date(message.timestamp).toLocaleTimeString("en-US", {
+            hour: "numeric",
+            minute: "2-digit",
             hour12: true,
           })}
         </span>

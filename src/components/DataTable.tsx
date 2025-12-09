@@ -1,7 +1,7 @@
-import React from 'react';
-import type { LoanRequestRow } from '../types';
-import Badge from './Badge';
-import { getStatusColor, getStatusLabel, formatDate } from '../lib/api';
+import React from "react";
+import type { LoanRequestRow } from "../types";
+import Badge from "./Badge";
+import { getStatusColor, getStatusLabel, formatDate } from "../lib/api";
 
 interface DataTableProps {
   data: LoanRequestRow[];
@@ -49,7 +49,7 @@ const DataTable: React.FC<DataTableProps> = ({ data, onRowClick }) => {
               <tr
                 key={row.id}
                 onClick={() => onRowClick?.(row)}
-                className={onRowClick ? 'cursor-pointer' : ''}
+                className={onRowClick ? "cursor-pointer" : ""}
               >
                 <td>
                   <div className="flex items-center gap-3">
@@ -62,7 +62,7 @@ const DataTable: React.FC<DataTableProps> = ({ data, onRowClick }) => {
                       </p>
                       {row.emi && (
                         <p className="text-xs text-gray-500">
-                          EMI: ₹{row.emi.toLocaleString('en-IN')}
+                          EMI: ₹{row.emi.toLocaleString("en-IN")}
                         </p>
                       )}
                     </div>
@@ -70,25 +70,23 @@ const DataTable: React.FC<DataTableProps> = ({ data, onRowClick }) => {
                 </td>
                 <td className="text-right">
                   <p className="font-semibold text-gray-900">
-                    ₹{row.loanAmount.toLocaleString('en-IN')}
+                    ₹{row.loanAmount.toLocaleString("en-IN")}
                   </p>
                   {row.tenure && (
-                    <p className="text-xs text-gray-500">
-                      {row.tenure} months
-                    </p>
+                    <p className="text-xs text-gray-500">{row.tenure} months</p>
                   )}
                 </td>
                 <td className="text-center">
                   <div className="flex justify-center">
                     <Badge
                       variant={
-                        row.status === 'approved'
-                          ? 'success'
-                          : row.status === 'rejected'
-                          ? 'danger'
-                          : row.status === 'under-review'
-                          ? 'warning'
-                          : 'info'
+                        row.status === "approved"
+                          ? "success"
+                          : row.status === "rejected"
+                            ? "danger"
+                            : row.status === "under-review"
+                              ? "warning"
+                              : "info"
                       }
                     >
                       {getStatusLabel(row.status)}

@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
   MessageSquare,
@@ -10,16 +10,14 @@ import {
   Menu,
   X,
   TrendingUp,
-  TrendingDown,
   Users,
   Clock,
-} from 'lucide-react';
-import MetricsCard from '../components/MetricsCard';
-import DataTable from '../components/DataTable';
-import Card from '../components/Card';
-import Badge from '../components/Badge';
-import type { DashboardMetric, LoanRequestRow } from '../types';
-import { getDashboardMetrics, getRecentLoanApplications } from '../lib/api';
+} from "lucide-react";
+import MetricsCard from "../components/MetricsCard";
+import DataTable from "../components/DataTable";
+import Card from "../components/Card";
+import type { DashboardMetric, LoanRequestRow } from "../types";
+import { getDashboardMetrics, getRecentLoanApplications } from "../lib/api";
 
 interface NavItemProps {
   icon: React.ReactNode;
@@ -33,8 +31,8 @@ const NavItem: React.FC<NavItemProps> = ({ icon, label, active, onClick }) => (
     onClick={onClick}
     className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
       active
-        ? 'bg-primary-50 text-primary-700 font-semibold'
-        : 'text-gray-700 hover:bg-gray-50'
+        ? "bg-primary-50 text-primary-700 font-semibold"
+        : "text-gray-700 hover:bg-gray-50"
     }`}
   >
     <span className="flex-shrink-0">{icon}</span>
@@ -45,10 +43,12 @@ const NavItem: React.FC<NavItemProps> = ({ icon, label, active, onClick }) => (
 const AdminDashboard: React.FC = () => {
   const navigate = useNavigate();
   const [metrics, setMetrics] = useState<DashboardMetric[]>([]);
-  const [loanApplications, setLoanApplications] = useState<LoanRequestRow[]>([]);
+  const [loanApplications, setLoanApplications] = useState<LoanRequestRow[]>(
+    [],
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [activeNav, setActiveNav] = useState('overview');
+  const [activeNav, setActiveNav] = useState("overview");
 
   useEffect(() => {
     const fetchData = async () => {
@@ -67,7 +67,7 @@ const AdminDashboard: React.FC = () => {
           setLoanApplications(applicationsResponse.data);
         }
       } catch (error) {
-        console.error('Error fetching dashboard data:', error);
+        console.error("Error fetching dashboard data:", error);
       } finally {
         setIsLoading(false);
       }
@@ -77,25 +77,25 @@ const AdminDashboard: React.FC = () => {
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem('chat2sanction_user');
-    navigate('/login');
+    localStorage.removeItem("chat2sanction_user");
+    navigate("/login");
   };
 
   const handleRowClick = (row: LoanRequestRow) => {
-    console.log('Clicked row:', row);
+    console.log("Clicked row:", row);
     // In production, navigate to loan details page
     // navigate(`/admin/loans/${row.id}`);
   };
 
   // Mock daily applications data for chart
   const dailyApplicationsData = [
-    { day: 'Mon', count: 1100 },
-    { day: 'Tue', count: 1450 },
-    { day: 'Wed', count: 1200 },
-    { day: 'Thu', count: 1650 },
-    { day: 'Fri', count: 1800 },
-    { day: 'Sat', count: 900 },
-    { day: 'Sun', count: 750 },
+    { day: "Mon", count: 1100 },
+    { day: "Tue", count: 1450 },
+    { day: "Wed", count: 1200 },
+    { day: "Thu", count: 1650 },
+    { day: "Fri", count: 1800 },
+    { day: "Sat", count: 900 },
+    { day: "Sun", count: 750 },
   ];
 
   const maxCount = Math.max(...dailyApplicationsData.map((d) => d.count));
@@ -105,7 +105,7 @@ const AdminDashboard: React.FC = () => {
       {/* Sidebar */}
       <aside
         className={`${
-          isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+          isSidebarOpen ? "translate-x-0" : "-translate-x-full"
         } lg:translate-x-0 fixed lg:static inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 transition-transform duration-300 ease-in-out flex flex-col`}
       >
         {/* Logo/Brand */}
@@ -136,26 +136,26 @@ const AdminDashboard: React.FC = () => {
           <NavItem
             icon={<LayoutDashboard className="w-5 h-5" />}
             label="Dashboard"
-            active={activeNav === 'overview'}
-            onClick={() => setActiveNav('overview')}
+            active={activeNav === "overview"}
+            onClick={() => setActiveNav("overview")}
           />
           <NavItem
             icon={<MessageSquare className="w-5 h-5" />}
             label="Conversations"
-            active={activeNav === 'conversations'}
-            onClick={() => setActiveNav('conversations')}
+            active={activeNav === "conversations"}
+            onClick={() => setActiveNav("conversations")}
           />
           <NavItem
             icon={<CheckCircle className="w-5 h-5" />}
             label="Approvals"
-            active={activeNav === 'approvals'}
-            onClick={() => setActiveNav('approvals')}
+            active={activeNav === "approvals"}
+            onClick={() => setActiveNav("approvals")}
           />
           <NavItem
             icon={<FileText className="w-5 h-5" />}
             label="Reports"
-            active={activeNav === 'reports'}
-            onClick={() => setActiveNav('reports')}
+            active={activeNav === "reports"}
+            onClick={() => setActiveNav("reports")}
           />
         </nav>
 
@@ -166,7 +166,9 @@ const AdminDashboard: React.FC = () => {
               A
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-gray-900 truncate">Admin User</p>
+              <p className="text-sm font-semibold text-gray-900 truncate">
+                Admin User
+              </p>
               <p className="text-xs text-gray-500 truncate">user@example.com</p>
             </div>
           </div>
@@ -175,7 +177,7 @@ const AdminDashboard: React.FC = () => {
             <NavItem
               icon={<Settings className="w-5 h-5" />}
               label="Settings"
-              onClick={() => console.log('Settings clicked')}
+              onClick={() => console.log("Settings clicked")}
             />
             <NavItem
               icon={<LogOut className="w-5 h-5" />}
@@ -220,7 +222,9 @@ const AdminDashboard: React.FC = () => {
               {/* User Avatar - Desktop */}
               <div className="hidden sm:flex items-center gap-3">
                 <div className="text-right">
-                  <p className="text-sm font-semibold text-gray-900">Admin User</p>
+                  <p className="text-sm font-semibold text-gray-900">
+                    Admin User
+                  </p>
                   <p className="text-xs text-gray-500">Administrator</p>
                 </div>
                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white font-semibold">
@@ -255,10 +259,15 @@ const AdminDashboard: React.FC = () => {
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   {/* Daily Applications Chart */}
                   <div className="lg:col-span-2">
-                    <Card title="Daily Applications (Last 30 Days)" padding="lg">
+                    <Card
+                      title="Daily Applications (Last 30 Days)"
+                      padding="lg"
+                    >
                       <div className="mb-4">
                         <div className="flex items-baseline gap-2">
-                          <h3 className="text-3xl font-bold text-gray-900">15,678</h3>
+                          <h3 className="text-3xl font-bold text-gray-900">
+                            15,678
+                          </h3>
                           <span className="inline-flex items-center gap-1 text-sm font-medium text-green-600">
                             <TrendingUp className="w-4 h-4" />
                             +12.5%
@@ -296,11 +305,18 @@ const AdminDashboard: React.FC = () => {
 
                   {/* Loan Outcome Distribution */}
                   <div className="lg:col-span-1">
-                    <Card title="Loan Outcome Distribution" subtitle="This Month" padding="lg">
+                    <Card
+                      title="Loan Outcome Distribution"
+                      subtitle="This Month"
+                      padding="lg"
+                    >
                       <div className="flex items-center justify-center py-8">
                         {/* Simple Donut Chart Representation */}
                         <div className="relative w-48 h-48">
-                          <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                          <svg
+                            className="w-full h-full transform -rotate-90"
+                            viewBox="0 0 100 100"
+                          >
                             {/* Approved - 65% */}
                             <circle
                               cx="50"
@@ -337,7 +353,9 @@ const AdminDashboard: React.FC = () => {
                           </svg>
                           <div className="absolute inset-0 flex items-center justify-center">
                             <div className="text-center">
-                              <p className="text-3xl font-bold text-gray-900">4,812</p>
+                              <p className="text-3xl font-bold text-gray-900">
+                                4,812
+                              </p>
                               <p className="text-xs text-gray-500">Total</p>
                             </div>
                           </div>
@@ -349,7 +367,9 @@ const AdminDashboard: React.FC = () => {
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                            <span className="text-sm text-gray-700">Approved</span>
+                            <span className="text-sm text-gray-700">
+                              Approved
+                            </span>
                           </div>
                           <span className="text-sm font-semibold text-gray-900">
                             65% (3,128)
@@ -358,7 +378,9 @@ const AdminDashboard: React.FC = () => {
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-                            <span className="text-sm text-gray-700">Pending</span>
+                            <span className="text-sm text-gray-700">
+                              Pending
+                            </span>
                           </div>
                           <span className="text-sm font-semibold text-gray-900">
                             25% (1,203)
@@ -367,7 +389,9 @@ const AdminDashboard: React.FC = () => {
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                            <span className="text-sm text-gray-700">Rejected</span>
+                            <span className="text-sm text-gray-700">
+                              Rejected
+                            </span>
                           </div>
                           <span className="text-sm font-semibold text-gray-900">
                             10% (481)
@@ -394,7 +418,10 @@ const AdminDashboard: React.FC = () => {
                     </button>
                   </div>
 
-                  <DataTable data={loanApplications} onRowClick={handleRowClick} />
+                  <DataTable
+                    data={loanApplications}
+                    onRowClick={handleRowClick}
+                  />
                 </div>
 
                 {/* Additional Stats Row */}
@@ -406,7 +433,9 @@ const AdminDashboard: React.FC = () => {
                       </div>
                       <div>
                         <p className="text-sm text-gray-600">Active Users</p>
-                        <p className="text-2xl font-bold text-gray-900">8,542</p>
+                        <p className="text-2xl font-bold text-gray-900">
+                          8,542
+                        </p>
                       </div>
                     </div>
                   </Card>
@@ -430,7 +459,9 @@ const AdminDashboard: React.FC = () => {
                       </div>
                       <div>
                         <p className="text-sm text-gray-600">Avg. Processing</p>
-                        <p className="text-2xl font-bold text-gray-900">2h 15m</p>
+                        <p className="text-2xl font-bold text-gray-900">
+                          2h 15m
+                        </p>
                       </div>
                     </div>
                   </Card>

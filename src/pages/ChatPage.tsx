@@ -115,6 +115,11 @@ const ChatPage: React.FC = () => {
     ];
 
     setMessages(initialMessages);
+    // Demo: progress workflow step after initial messages load
+    // Move from 'lead' to 'kyc' after a short delay to avoid unused setter warning
+    setTimeout(() => {
+      setCurrentStep("kyc");
+    }, 2000);
   }, []);
 
   // Scroll to bottom when messages change

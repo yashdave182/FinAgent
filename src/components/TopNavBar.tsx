@@ -1,5 +1,5 @@
 import React from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { MessageSquare, LogOut, User, Menu } from "lucide-react";
 
 interface TopNavBarProps {
@@ -18,7 +18,7 @@ const TopNavBar: React.FC<TopNavBarProps> = ({
   variant = "default",
 }) => {
   const navigate = useNavigate();
-  const location = useLocation();
+
   const [showDropdown, setShowDropdown] = React.useState(false);
 
   const handleLogout = () => {

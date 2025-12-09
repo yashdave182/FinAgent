@@ -1,5 +1,5 @@
-import React, { forwardRef } from 'react';
-import type { InputProps } from '../types';
+import React, { forwardRef } from "react";
+import type { InputProps } from "../types";
 
 const Input = forwardRef<HTMLInputElement, InputProps>(
   (
@@ -9,11 +9,11 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
       helperText,
       leftIcon,
       rightIcon,
-      className = '',
-      type = 'text',
+      className = "",
+      type = "text",
       ...props
     },
-    ref
+    ref,
   ) => {
     const hasError = !!error;
 
@@ -38,13 +38,13 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             type={type}
             className={`
               block w-full rounded-lg border transition-colors
-              ${leftIcon ? 'pl-10' : 'pl-4'}
-              ${rightIcon ? 'pr-10' : 'pr-4'}
+              ${leftIcon ? "pl-10" : "pl-4"}
+              ${rightIcon ? "pr-10" : "pr-4"}
               py-2.5
               ${
                 hasError
-                  ? 'border-red-300 text-red-900 placeholder-red-300 focus:ring-red-500 focus:border-red-500'
-                  : 'border-gray-300 text-gray-900 placeholder-gray-400 focus:ring-primary-500 focus:border-primary-500'
+                  ? "border-red-300 text-red-900 placeholder-red-300 focus:ring-red-500 focus:border-red-500"
+                  : "border-gray-300 text-gray-900 placeholder-gray-400 focus:ring-primary-500 focus:border-primary-500"
               }
               focus:outline-none focus:ring-2 focus:ring-offset-0
               disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed
@@ -83,9 +83,9 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
         )}
       </div>
     );
-  }
+  },
 );
 
-Input.displayName = 'Input';
+Input.displayName = "Input";
 
 export default Input;

@@ -1,12 +1,26 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Send, Paperclip, Mic, FileText } from "lucide-react";
+import {
+  MessageSquare,
+  Send,
+  CheckCircle,
+  Clock,
+  FileText,
+  Menu,
+  X,
+} from "lucide-react";
 import TopNavBar from "../components/TopNavBar";
 import Sidebar from "../components/Sidebar";
 import ChatBubble from "../components/ChatBubble";
 import Button from "../components/Button";
-import Badge from "../components/Badge";
-import type { ChatMessage, WorkflowStep, User } from "../types";
+import {
+  sendMessage,
+  getChatSession,
+  getChatHistory,
+  getCurrentUser,
+  type ChatMessage,
+  type User,
+} from "../lib/api";
 
 const ChatPage: React.FC = () => {
   const navigate = useNavigate();
@@ -18,111 +32,75 @@ const ChatPage: React.FC = () => {
   const [inputValue, setInputValue] = useState("");
   const [isBotTyping, setIsBotTyping] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [currentStep, setCurrentStep] = useState("lead");
+  const [currentStep, setCurrentStep] = useState("WELCOME");
   const [showSidebar, setShowSidebar] = useState(false);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Workflow steps
-  const workflowSteps: WorkflowStep[] = [
-    {
-      id: "lead",
-      label: "Lead & Loan Details",
-      description: "Basic information collection",
-      status: "completed",
-      icon: "user",
-      order: 1,
-    },
-    {
-      id: "kyc",
-      label: "KYC Verification",
-      description: "Identity verification",
-      status: "active",
-      icon: "shield",
-      order: 2,
-    },
-    {
-      id: "eligibility",
-      label: "Eligibility Check",
-      description: "Credit assessment",
-      status: "pending",
-      icon: "check",
-      order: 3,
-    },
-    {
-      id: "sanction",
-      label: "Sanction Letter",
-      description: "Final approval document",
-      status: "pending",
-      icon: "file",
-      order: 4,
-    },
-  ];
-
-  // Customer summary data
-  const customerData = {
-    name: currentUser?.name || "John Doe",
-    email: currentUser?.email || "john.doe@example.com",
-    loanAmount: 50000,
-    tenure: 60,
-    emi: 989.5,
-    eligibilityStatus: "Pre-approved" as const,
-  };
-
-  // Load user and initialize chat
+  // Initialize chat session
   useEffect(() => {
-    const storedUser = localStorage.getItem("finagent_user");
-    if (storedUser) {
-      setCurrentUser(JSON.parse(storedUser));
-    }
+    const initializeChat = async () => {
+      // Get current user
+      const user = getCurrentUser();
+      if (!user) {
+        navigate("/login");
+        return;
+      }
 
-    // Initialize with welcome messages
-    const initialMessages: ChatMessage[] = [
-      {
-        id: "1",
-        sender: "bot",
-        type: "text",
-        text: "Welcome! I'm here to help you with your loan application. How can I assist you today?",
-        timestamp: new Date(Date.now() - 5000).toISOString(),
-      },
-      {
-        id: "2",
-        sender: "bot",
-        type: "quick-reply",
-        text: "To get started, please let me know what you need:",
-        timestamp: new Date(Date.now() - 3000).toISOString(),
-        meta: {
-          buttons: [
-            {
-              id: "btn1",
-              label: "Apply for Loan",
-              value: "apply",
-              action: "apply",
-            },
-            {
-              id: "btn2",
-              label: "Check Eligibility",
-              value: "eligibility",
-              action: "eligibility",
-            },
-            {
-              id: "btn3",
-              label: "Upload Documents",
-              value: "documents",
-              action: "documents",
-            },
-          ],
-        },
-      },
-    ];
+      setCurrentUser(user);
 
-    setMessages(initialMessages);
-    // Demo: progress workflow step after initial messages load
-    // Move from 'lead' to 'kyc' after a short delay to avoid unused setter warning
-    setTimeout(() => {
-      setCurrentStep("kyc");
-    }, 2000);
-  }, []);
+      // Ensure user_id exists, fallback to generating from email
+      const userId = user.user_id || user.email?.split("@")[0] || "user";
 
-  // Scroll to bottom when messages change
+      try {
+        // Get or create chat session
+        const sessionResult = await getChatSession(userId);
+
+        if (sessionResult.success && sessionResult.data) {
+          const session = sessionResult.data;
+          setSessionId(session.session_id);
+          setCurrentStep(session.current_step);
+
+          // Load chat history if exists
+          if (session.message_count > 0) {
+            const historyResult = await getChatHistory(session.session_id);
+            if (historyResult.success && historyResult.data) {
+              setMessages(historyResult.data);
+            }
+          } else {
+            // Show welcome message for new sessions
+            setMessages([
+              {
+                id: "welcome",
+                sender: "assistant",
+                type: "text",
+                text: "Welcome to FinAgent! 👋 I'm your AI loan assistant powered by advanced AI. I can help you apply for a personal loan in minutes. How can I assist you today?",
+                timestamp: new Date().toISOString(),
+              },
+            ]);
+          }
+        }
+      } catch (error) {
+        console.error("Failed to initialize chat:", error);
+        // Show welcome message even if session creation fails
+        setMessages([
+          {
+            id: "welcome",
+            sender: "assistant",
+            type: "text",
+            text: "Welcome to FinAgent! How can I help you with your loan today?",
+            timestamp: new Date().toISOString(),
+          },
+        ]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    initializeChat();
+  }, [navigate]);
+
+  // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     if (chatContainerRef.current) {
       chatContainerRef.current.scrollTop =
@@ -130,338 +108,372 @@ const ChatPage: React.FC = () => {
     }
   }, [messages, isBotTyping]);
 
-  // Handle send message
+  // Handle sending messages
   const handleSendMessage = async () => {
-    if (!inputValue.trim() || isBotTyping) return;
+    if (!inputValue.trim() || !currentUser || isBotTyping) return;
 
     const userMessage: ChatMessage = {
-      id: `msg-${Date.now()}`,
+      id: `user_${Date.now()}`,
       sender: "user",
       type: "text",
-      text: inputValue,
+      text: inputValue.trim(),
       timestamp: new Date().toISOString(),
     };
 
+    // Add user message to UI
     setMessages((prev) => [...prev, userMessage]);
     setInputValue("");
     setIsBotTyping(true);
 
-    // Simulate bot response
-    setTimeout(() => {
-      const botResponse = generateBotResponse(inputValue);
-      setMessages((prev) => [...prev, botResponse]);
+    try {
+      // Send message to backend
+      const response = await sendMessage(
+        userMessage.text,
+        currentUser.user_id,
+        sessionId || undefined,
+      );
+
+      if (response.success && response.data) {
+        const botMessage = response.data;
+
+        // Update session ID from backend response (always trust backend)
+        if (botMessage.meta?.session_id) {
+          setSessionId(botMessage.meta.session_id);
+          console.log(
+            "[ChatPage] Updated sessionId:",
+            botMessage.meta.session_id,
+          );
+        }
+
+        // Update current step
+        if (botMessage.meta?.step) {
+          setCurrentStep(botMessage.meta.step);
+        }
+
+        // Add bot message
+        setMessages((prev) => [...prev, botMessage]);
+
+        // Check if loan was approved and navigate to sanction
+        if (
+          botMessage.meta?.loan_id &&
+          (botMessage.meta?.decision === "APPROVED" ||
+            botMessage.meta?.decision === "ADJUST")
+        ) {
+          // Show loan offer message
+          setTimeout(() => {
+            navigate(`/sanction/${botMessage.meta!.loan_id}`);
+          }, 2000);
+        }
+      } else {
+        // Show error message
+        const errorMessage: ChatMessage = {
+          id: `error_${Date.now()}`,
+          sender: "assistant",
+          type: "text",
+          text:
+            response.error ||
+            "Sorry, I encountered an error. Please try again.",
+          timestamp: new Date().toISOString(),
+        };
+        setMessages((prev) => [...prev, errorMessage]);
+      }
+    } catch (error) {
+      console.error("Send message error:", error);
+      const errorMessage: ChatMessage = {
+        id: `error_${Date.now()}`,
+        sender: "assistant",
+        type: "text",
+        text: "Sorry, I'm having trouble connecting. Please check your internet connection and try again.",
+        timestamp: new Date().toISOString(),
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+    } finally {
       setIsBotTyping(false);
-    }, 1500);
+      inputRef.current?.focus();
+    }
   };
 
-  // Generate bot response based on user input
-  const generateBotResponse = (userInput: string): ChatMessage => {
-    const lowerInput = userInput.toLowerCase();
-
-    if (lowerInput.includes("loan") || lowerInput.includes("amount")) {
-      return {
-        id: `msg-${Date.now()}`,
-        sender: "bot",
-        type: "loan-summary",
-        text: "Based on your profile, here are your loan details:",
-        timestamp: new Date().toISOString(),
-        meta: {
-          loanAmount: customerData.loanAmount,
-          tenure: customerData.tenure,
-          emi: customerData.emi,
-          eligibilityStatus: "pre-approved",
-        },
-      };
-    }
-
-    if (lowerInput.includes("eligib") || lowerInput.includes("qualify")) {
-      return {
-        id: `msg-${Date.now()}`,
-        sender: "bot",
-        type: "text",
-        text: "🎉 Great news! Based on the information provided, you are pre-approved for a personal loan up to ₹5,00,000 at 12.5% interest rate. Would you like to proceed with the application?",
-        timestamp: new Date().toISOString(),
-      };
-    }
-
-    if (lowerInput.includes("document") || lowerInput.includes("kyc")) {
-      return {
-        id: `msg-${Date.now()}`,
-        sender: "bot",
-        type: "document-request",
-        text: "For KYC verification, please upload the following documents:\n• Aadhaar Card\n• PAN Card\n• Latest 3 months salary slips\n• Bank statement (last 6 months)",
-        timestamp: new Date().toISOString(),
-      };
-    }
-
-    if (lowerInput.includes("sanction") || lowerInput.includes("letter")) {
-      return {
-        id: `msg-${Date.now()}`,
-        sender: "bot",
-        type: "text",
-        text: 'Your application has been approved! You can generate your sanction letter now. Click the "Generate Sanction Letter" button on the right panel.',
-        timestamp: new Date().toISOString(),
-      };
-    }
-
-    // Default response
-    return {
-      id: `msg-${Date.now()}`,
-      sender: "bot",
-      type: "text",
-      text: "Thank you for your message! For this demo, you are pre-approved for a loan of ₹50,000. Would you like to generate your sanction letter?",
-      timestamp: new Date().toISOString(),
-    };
-  };
-
-  // Handle quick reply
-  const handleQuickReply = (value: string) => {
-    setInputValue(value);
-    setTimeout(() => handleSendMessage(), 100);
-  };
-
-  // Handle Enter key
-  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
     }
   };
 
-  // Handle generate sanction letter
-  const handleGenerateSanction = () => {
-    navigate("/sanction/LOAN-123");
+  const handleQuickReply = (text: string) => {
+    setInputValue(text);
+    setTimeout(() => handleSendMessage(), 100);
   };
 
-  return (
-    <div className="flex flex-col h-screen bg-gray-50">
-      {/* Top Navigation */}
-      <TopNavBar
-        userName={currentUser?.name}
-        userEmail={currentUser?.email}
-        variant="chat"
-        onMenuClick={() => setShowSidebar(!showSidebar)}
-      />
+  // Workflow steps based on current step
+  const workflowSteps = [
+    {
+      id: "welcome",
+      label: "Welcome",
+      description: "Getting started",
+      status:
+        currentStep === "WELCOME"
+          ? "current"
+          : currentStep !== "WELCOME"
+            ? "completed"
+            : "pending",
+      icon: MessageSquare,
+      order: 1,
+    },
+    {
+      id: "gathering",
+      label: "Loan Details",
+      description: "Collecting information",
+      status:
+        currentStep === "GATHERING_DETAILS"
+          ? "current"
+          : currentStep === "UNDERWRITING" ||
+              currentStep === "SANCTION_GENERATED" ||
+              currentStep === "REJECTED"
+            ? "completed"
+            : "pending",
+      icon: FileText,
+      order: 2,
+    },
+    {
+      id: "underwriting",
+      label: "Processing",
+      description: "AI evaluation",
+      status:
+        currentStep === "UNDERWRITING"
+          ? "current"
+          : currentStep === "SANCTION_GENERATED" || currentStep === "REJECTED"
+            ? "completed"
+            : "pending",
+      icon: Clock,
+      order: 3,
+    },
+    {
+      id: "decision",
+      label: "Decision",
+      description: "Loan status",
+      status:
+        currentStep === "SANCTION_GENERATED" || currentStep === "REJECTED"
+          ? "completed"
+          : "pending",
+      icon: CheckCircle,
+      order: 4,
+    },
+  ];
 
-      {/* Main Content Area */}
-      <div className="flex flex-1 overflow-hidden">
-        {/* Left Sidebar - Desktop */}
-        <div className="hidden lg:block w-80 flex-shrink-0">
-          <Sidebar
-            steps={workflowSteps}
-            currentStep={currentStep}
-            className="h-full"
-          />
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading chat...</p>
         </div>
+      </div>
+    );
+  }
 
+  return (
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      <TopNavBar />
+
+      <div className="flex flex-1 overflow-hidden">
         {/* Mobile Sidebar Overlay */}
         {showSidebar && (
-          <>
-            <div
-              className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
-              onClick={() => setShowSidebar(false)}
-            />
-            <div className="fixed left-0 top-16 bottom-0 w-80 z-50 lg:hidden">
-              <Sidebar
-                steps={workflowSteps}
-                currentStep={currentStep}
-                className="h-full"
-              />
-            </div>
-          </>
+          <div
+            className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+            onClick={() => setShowSidebar(false)}
+          />
         )}
 
-        {/* Center Chat Area */}
+        {/* Sidebar */}
+        <div
+          className={`${
+            showSidebar ? "translate-x-0" : "-translate-x-full"
+          } lg:translate-x-0 fixed lg:static inset-y-0 left-0 z-50 transition-transform duration-300 ease-in-out`}
+        >
+          <Sidebar steps={workflowSteps} currentStep={currentStep} />
+        </div>
+
+        {/* Main Chat Area */}
         <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Chat Messages Container */}
-          <div
-            ref={chatContainerRef}
-            className="flex-1 overflow-y-auto px-4 py-6 space-y-4 scrollbar-thin"
-          >
-            <div className="max-w-4xl mx-auto">
-              {messages.map((message) => (
-                <ChatBubble
-                  key={message.id}
-                  message={message}
-                  onQuickReply={handleQuickReply}
-                />
-              ))}
-
-              {/* Typing Indicator */}
-              {isBotTyping && (
-                <div className="flex gap-3 mb-4 chat-bubble-enter">
-                  <div className="flex-shrink-0">
-                    <div className="w-8 h-8 rounded-full bg-gradient-success flex items-center justify-center text-white font-semibold text-sm">
-                      AI
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1 px-4 py-3 bg-white border border-gray-200 rounded-2xl rounded-tl-sm shadow-sm">
-                    <div className="typing-dot w-2 h-2 bg-gray-400 rounded-full"></div>
-                    <div className="typing-dot w-2 h-2 bg-gray-400 rounded-full"></div>
-                    <div className="typing-dot w-2 h-2 bg-gray-400 rounded-full"></div>
-                  </div>
-                </div>
-              )}
+          {/* Chat Header */}
+          <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setShowSidebar(!showSidebar)}
+                className="lg:hidden p-2 hover:bg-gray-100 rounded-lg"
+              >
+                {showSidebar ? (
+                  <X className="w-5 h-5" />
+                ) : (
+                  <Menu className="w-5 h-5" />
+                )}
+              </button>
+              <MessageSquare className="w-6 h-6 text-blue-600" />
+              <div>
+                <h1 className="text-lg font-semibold text-gray-900">
+                  Loan Assistant
+                </h1>
+                <p className="text-sm text-gray-500">Real-time processing</p>
+              </div>
             </div>
-          </div>
-
-          {/* Quick Actions */}
-          <div className="border-t border-gray-200 bg-white px-4 py-3">
-            <div className="max-w-4xl mx-auto">
-              <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin">
-                <button
-                  onClick={() => setInputValue("₹50,000 for 60 months")}
-                  className="flex-shrink-0 px-4 py-2 text-sm font-medium text-primary-600 bg-primary-50 rounded-lg hover:bg-primary-100 transition-colors"
-                >
-                  ₹50K for 60 months
-                </button>
-                <button
-                  onClick={() => setInputValue("₹2,00,000 for 24 months")}
-                  className="flex-shrink-0 px-4 py-2 text-sm font-medium text-primary-600 bg-primary-50 rounded-lg hover:bg-primary-100 transition-colors"
-                >
-                  ₹2L for 24 months
-                </button>
-                <button
-                  onClick={() => setInputValue("Check my eligibility")}
-                  className="flex-shrink-0 px-4 py-2 text-sm font-medium text-primary-600 bg-primary-50 rounded-lg hover:bg-primary-100 transition-colors"
-                >
-                  Check Eligibility
-                </button>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                <span className="text-sm text-gray-600">Online</span>
               </div>
             </div>
           </div>
 
-          {/* Input Area */}
-          <div className="border-t border-gray-200 bg-white px-4 py-4">
-            <div className="max-w-4xl mx-auto">
-              <div className="flex items-end gap-3">
-                {/* Attachment Button */}
-                <button className="flex-shrink-0 p-3 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
-                  <Paperclip className="w-5 h-5" />
-                </button>
+          {/* Workflow Steps */}
+          <div className="bg-white border-b border-gray-200 px-4 py-3 overflow-x-auto">
+            <div className="flex items-center gap-4 min-w-max">
+              {workflowSteps
+                .sort((a, b) => a.order - b.order)
+                .map((step, index) => (
+                  <div key={step.id} className="flex items-center">
+                    <div className="flex items-center gap-2">
+                      <div
+                        className={`flex items-center justify-center w-8 h-8 rounded-full ${
+                          step.status === "completed"
+                            ? "bg-green-100 text-green-600"
+                            : step.status === "current"
+                              ? "bg-blue-100 text-blue-600"
+                              : "bg-gray-100 text-gray-400"
+                        }`}
+                      >
+                        <step.icon className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <p
+                          className={`text-sm font-medium ${
+                            step.status === "completed" ||
+                            step.status === "current"
+                              ? "text-gray-900"
+                              : "text-gray-400"
+                          }`}
+                        >
+                          {step.label}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {step.description}
+                        </p>
+                      </div>
+                    </div>
+                    {index < workflowSteps.length - 1 && (
+                      <div
+                        className={`w-12 h-0.5 mx-2 ${
+                          step.status === "completed"
+                            ? "bg-green-500"
+                            : "bg-gray-200"
+                        }`}
+                      />
+                    )}
+                  </div>
+                ))}
+            </div>
+          </div>
 
-                {/* Text Input */}
-                <div className="flex-1 relative">
+          {/* Messages Container */}
+          <div
+            ref={chatContainerRef}
+            className="flex-1 overflow-y-auto bg-gray-50 px-4 py-6 space-y-4"
+          >
+            {messages.map((message) => (
+              <ChatBubble
+                key={message.id}
+                message={message}
+                onQuickReply={handleQuickReply}
+              />
+            ))}
+
+            {/* Bot typing indicator */}
+            {isBotTyping && (
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center text-white text-sm font-semibold">
+                  AI
+                </div>
+                <div className="flex-1 bg-white rounded-2xl rounded-tl-none px-4 py-3 shadow-sm border border-gray-200">
+                  <div className="flex items-center gap-2">
+                    <div className="flex gap-1">
+                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-100"></div>
+                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-200"></div>
+                    </div>
+                    <span className="text-sm text-gray-500">
+                      AI is thinking...
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Input Area */}
+          <div className="bg-white border-t border-gray-200 px-4 py-4">
+            <div className="max-w-4xl mx-auto">
+              {/* Quick Suggestions */}
+              {messages.length <= 2 && (
+                <div className="mb-3 flex flex-wrap gap-2">
+                  <button
+                    onClick={() =>
+                      handleQuickReply(
+                        "I need a personal loan of ₹5,00,000 for 36 months",
+                      )
+                    }
+                    className="px-3 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-full transition-colors"
+                  >
+                    💰 Need ₹5L loan
+                  </button>
+                  <button
+                    onClick={() =>
+                      handleQuickReply("What documents do I need?")
+                    }
+                    className="px-3 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-full transition-colors"
+                  >
+                    📄 Required documents
+                  </button>
+                  <button
+                    onClick={() =>
+                      handleQuickReply("What is the interest rate?")
+                    }
+                    className="px-3 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-full transition-colors"
+                  >
+                    📊 Interest rates
+                  </button>
+                </div>
+              )}
+
+              <div className="flex items-end gap-2">
+                <div className="flex-1">
                   <input
                     ref={inputRef}
                     type="text"
                     value={inputValue}
                     onChange={(e) => setInputValue(e.target.value)}
                     onKeyPress={handleKeyPress}
-                    placeholder="Type your message about loan..."
+                    placeholder="Type your message... (Press Enter to send)"
                     disabled={isBotTyping}
-                    className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
                   />
-                  <button className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-gray-600 transition-colors">
-                    <Mic className="w-5 h-5" />
-                  </button>
                 </div>
-
-                {/* Send Button */}
-                <button
+                <Button
                   onClick={handleSendMessage}
                   disabled={!inputValue.trim() || isBotTyping}
-                  className="flex-shrink-0 p-3 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors shadow-sm"
+                  variant="primary"
+                  size="md"
                 >
                   <Send className="w-5 h-5" />
-                </button>
+                  <span className="hidden sm:inline ml-2">Send</span>
+                </Button>
               </div>
+
+              <p className="text-xs text-gray-500 mt-2 text-center">
+                Real-time loan processing • Secure & Confidential
+              </p>
             </div>
           </div>
         </div>
-
-        {/* Right Summary Panel - Desktop */}
-        <div className="hidden xl:block w-80 border-l border-gray-200 bg-white overflow-y-auto">
-          <div className="p-6">
-            <h3 className="text-lg font-bold text-gray-900 mb-6 font-display">
-              Customer Snapshot
-            </h3>
-
-            <div className="space-y-6">
-              {/* Customer Info */}
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white font-semibold">
-                    {customerData.name.charAt(0)}
-                  </div>
-                  <div>
-                    <p className="font-semibold text-gray-900">
-                      {customerData.name}
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      {customerData.email}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Loan Details */}
-              <div className="space-y-4">
-                <div className="flex justify-between items-start">
-                  <span className="text-sm text-gray-600">Loan Amount</span>
-                  <span className="text-lg font-bold text-gray-900">
-                    ₹{customerData.loanAmount.toLocaleString("en-IN")}
-                  </span>
-                </div>
-
-                <div className="flex justify-between items-start">
-                  <span className="text-sm text-gray-600">Tenure</span>
-                  <span className="font-semibold text-gray-900">
-                    {customerData.tenure} months
-                  </span>
-                </div>
-
-                <div className="flex justify-between items-start">
-                  <span className="text-sm text-gray-600">Monthly EMI</span>
-                  <span className="font-semibold text-gray-900">
-                    ₹{customerData.emi.toLocaleString("en-IN")}
-                  </span>
-                </div>
-
-                <div className="pt-4 border-t border-gray-200">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">
-                      Eligibility Status
-                    </span>
-                    <Badge variant="success">
-                      {customerData.eligibilityStatus}
-                    </Badge>
-                  </div>
-                </div>
-              </div>
-
-              {/* Action Button */}
-              <Button
-                variant="primary"
-                size="lg"
-                className="w-full"
-                onClick={handleGenerateSanction}
-                leftIcon={<FileText className="w-5 h-5" />}
-              >
-                Generate Sanction Letter
-              </Button>
-
-              {/* Info Note */}
-              <div className="p-4 bg-blue-50 border border-blue-100 rounded-lg">
-                <p className="text-xs text-blue-800">
-                  <strong>Note:</strong> Your application is pre-approved.
-                  Generate your sanction letter to proceed with disbursement.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Mobile Summary Panel - Bottom Sheet */}
-      <div className="xl:hidden border-t border-gray-200 bg-white p-4">
-        <button
-          onClick={handleGenerateSanction}
-          className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-primary-500 text-white font-semibold rounded-lg hover:bg-primary-600 transition-colors shadow-sm"
-        >
-          <FileText className="w-5 h-5" />
-          Generate Sanction Letter
-        </button>
       </div>
     </div>
   );

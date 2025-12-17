@@ -1,0 +1,33 @@
+# FastAPI and Web Framework
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+python-multipart==0.0.6
+pydantic==2.5.0
+pydantic-settings==2.1.0
+
+# LangChain and AI
+langchain==0.1.0
+langchain-core==0.1.0
+langchain-groq==0.0.1
+
+# Firebase
+firebase-admin==6.3.0
+google-cloud-firestore==2.13.1
+
+# PDF Generation
+reportlab==4.0.7
+
+# Utilities
+python-dotenv==1.0.0
+typing-extensions==4.9.0
+
+# Date and Time
+python-dateutil==2.8.2
+
+# HTTP Client (for testing)
+httpx==0.25.2
+
+# Development Tools (optional)
+pytest==7.4.3
+pytest-asyncio==0.21.1
+black==23.12.0

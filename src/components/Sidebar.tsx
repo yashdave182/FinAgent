@@ -1,6 +1,6 @@
-import React from 'react';
-import { CheckCircle, Circle, Clock } from 'lucide-react';
-import type { WorkflowStep, StepStatus } from '../types';
+import React from "react";
+import { CheckCircle, Circle, Clock } from "lucide-react";
+import type { WorkflowStep, StepStatus } from "../types";
 
 interface SidebarProps {
   steps: WorkflowStep[];
@@ -8,16 +8,20 @@ interface SidebarProps {
   className?: string;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ steps, currentStep, className = '' }) => {
+const Sidebar: React.FC<SidebarProps> = ({
+  steps,
+  currentStep,
+  className = "",
+}) => {
   const getStepIcon = (status: StepStatus) => {
     switch (status) {
-      case 'completed':
+      case "completed":
         return <CheckCircle className="w-5 h-5 text-green-500" />;
-      case 'active':
+      case "active":
         return <Circle className="w-5 h-5 text-primary-500 fill-primary-500" />;
-      case 'pending':
+      case "pending":
         return <Clock className="w-5 h-5 text-gray-400" />;
-      case 'skipped':
+      case "skipped":
         return <Circle className="w-5 h-5 text-gray-300" />;
       default:
         return <Circle className="w-5 h-5 text-gray-400" />;
@@ -25,18 +29,19 @@ const Sidebar: React.FC<SidebarProps> = ({ steps, currentStep, className = '' })
   };
 
   const getStepStyles = (status: StepStatus, isActive: boolean) => {
-    const baseStyles = 'relative flex items-start gap-3 p-4 rounded-lg transition-all';
+    const baseStyles =
+      "relative flex items-start gap-3 p-4 rounded-lg transition-all";
 
     if (isActive) {
       return `${baseStyles} bg-primary-50 border-2 border-primary-200`;
     }
 
     switch (status) {
-      case 'completed':
+      case "completed":
         return `${baseStyles} hover:bg-gray-50`;
-      case 'active':
+      case "active":
         return `${baseStyles} bg-primary-50`;
-      case 'pending':
+      case "pending":
         return `${baseStyles} hover:bg-gray-50`;
       default:
         return `${baseStyles}`;
@@ -45,16 +50,16 @@ const Sidebar: React.FC<SidebarProps> = ({ steps, currentStep, className = '' })
 
   const getTextStyles = (status: StepStatus) => {
     switch (status) {
-      case 'completed':
-        return 'text-gray-900';
-      case 'active':
-        return 'text-primary-700 font-semibold';
-      case 'pending':
-        return 'text-gray-500';
-      case 'skipped':
-        return 'text-gray-400';
+      case "completed":
+        return "text-gray-900";
+      case "active":
+        return "text-primary-700 font-semibold";
+      case "pending":
+        return "text-gray-500";
+      case "skipped":
+        return "text-gray-400";
       default:
-        return 'text-gray-600';
+        return "text-gray-600";
     }
   };
 
@@ -69,48 +74,54 @@ const Sidebar: React.FC<SidebarProps> = ({ steps, currentStep, className = '' })
         </p>
 
         <div className="space-y-2">
-          {steps.map((step, index) => (
-            <div key={step.id}>
-              <div
-                className={getStepStyles(
-                  step.status,
-                  currentStep === step.id
-                )}
-              >
-                {/* Step Icon */}
-                <div className="flex-shrink-0 mt-0.5">
-                  {getStepIcon(step.status)}
-                </div>
-
-                {/* Step Content */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between mb-1">
-                    <h3 className={`text-sm font-medium ${getTextStyles(step.status)}`}>
-                      {step.label}
-                    </h3>
-                    {step.status === 'active' && (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-700">
-                        In Progress
-                      </span>
-                    )}
-                    {step.status === 'completed' && (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
-                        Done
-                      </span>
-                    )}
+          {steps && steps.length > 0 ? (
+            steps.map((step, index) => (
+              <div key={step.id}>
+                <div
+                  className={getStepStyles(
+                    step.status,
+                    currentStep === step.id,
+                  )}
+                >
+                  {/* Step Icon */}
+                  <div className="flex-shrink-0 mt-0.5">
+                    {getStepIcon(step.status)}
                   </div>
-                  <p className="text-xs text-gray-500">
-                    {step.description}
-                  </p>
-                </div>
-              </div>
 
-              {/* Connector Line */}
-              {index < steps.length - 1 && (
-                <div className="ml-[30px] h-8 w-0.5 bg-gray-200" />
-              )}
+                  {/* Step Content */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between mb-1">
+                      <h3
+                        className={`text-sm font-medium ${getTextStyles(step.status)}`}
+                      >
+                        {step.label}
+                      </h3>
+                      {step.status === "active" && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-700">
+                          In Progress
+                        </span>
+                      )}
+                      {step.status === "completed" && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                          Done
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-500">{step.description}</p>
+                  </div>
+                </div>
+
+                {/* Connector Line */}
+                {index < steps.length - 1 && (
+                  <div className="ml-[30px] h-8 w-0.5 bg-gray-200" />
+                )}
+              </div>
+            ))
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-sm text-gray-500">No steps available</p>
             </div>
-          ))}
+          )}
         </div>
       </div>
 

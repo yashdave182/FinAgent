@@ -1,0 +1,2 @@
+# This file ensures the sanctions directory is tracked by git
+# PDF files will be generated in this directory at runtime

@@ -33,7 +33,7 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ message, onQuickReply }) => {
       {!isUser && (
         <div className="flex-shrink-0">
           <div className="w-8 h-8 rounded-full bg-gradient-success flex items-center justify-center text-white font-semibold text-sm">
-            AI
+            FA
           </div>
         </div>
       )}

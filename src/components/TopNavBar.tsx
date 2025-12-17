@@ -61,7 +61,7 @@ const TopNavBar: React.FC<TopNavBarProps> = ({
                 </h1>
                 {variant === "chat" && (
                   <p className="text-xs text-gray-500 hidden sm:block">
-                    AI Loan Assistant
+                    Loan Assistant
                   </p>
                 )}
               </div>

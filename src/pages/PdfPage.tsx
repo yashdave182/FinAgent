@@ -3,12 +3,12 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Download, ArrowLeft, Mail, Printer, CheckCircle } from "lucide-react";
 import Button from "../components/Button";
 import Card from "../components/Card";
-import type { LoanApplication } from "../types";
 import {
   getLoanApplication,
-  downloadPDF,
+  downloadSanctionPDF,
   formatCurrency,
   formatDate,
+  type LoanApplication,
 } from "../lib/api";
 
 const PdfPage: React.FC = () => {
@@ -43,12 +43,16 @@ const PdfPage: React.FC = () => {
 
     setIsDownloading(true);
     try {
-      await downloadPDF(loanId);
-      // Show success message
-      alert("PDF download initiated successfully!");
+      const success = await downloadSanctionPDF(loanId);
+      if (success) {
+        // Show success message
+        setTimeout(() => {
+          alert("Sanction letter downloaded successfully!");
+        }, 300);
+      }
     } catch (error) {
-      console.error("Error downloading PDF:", error);
-      alert("Failed to download PDF. Please try again.");
+      console.error("Error downloading document:", error);
+      alert("Failed to download sanction letter. Please try again.");
     } finally {
       setIsDownloading(false);
     }
@@ -106,12 +110,10 @@ const PdfPage: React.FC = () => {
     );
   }
 
-  const sanctionDate = loanData.sanctionDate
-    ? new Date(loanData.sanctionDate)
+  const sanctionDate = loanData.created_at
+    ? new Date(loanData.created_at)
     : new Date();
-  const validTillDate = loanData.validTill
-    ? new Date(loanData.validTill)
-    : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+  const validTillDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days validity
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -140,25 +142,6 @@ const PdfPage: React.FC = () => {
 
       {/* Main Content */}
       <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Info Alert */}
-        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg flex items-start gap-3 print:hidden">
-          <svg
-            className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5"
-            fill="currentColor"
-            viewBox="0 0 20 20"
-          >
-            <path
-              fillRule="evenodd"
-              d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-              clipRule="evenodd"
-            />
-          </svg>
-          <p className="text-sm text-blue-800">
-            <strong>Note:</strong> In production, this will trigger server-side
-            PDF generation with real customer data and digital signatures.
-          </p>
-        </div>
-
         {/* Success Banner */}
         <div className="mb-8 p-6 bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200 rounded-xl print:hidden">
           <div className="flex items-center gap-4">
@@ -200,8 +183,7 @@ const PdfPage: React.FC = () => {
             <div className="text-right">
               <p className="text-xs text-gray-500">Reference ID</p>
               <p className="text-sm font-semibold text-gray-900">
-                {loanData.approvalId ||
-                  `LN-APV-${loanId?.slice(-8).toUpperCase()}`}
+                {loanData.loan_id || loanId}
               </p>
             </div>
           </div>
@@ -221,14 +203,14 @@ const PdfPage: React.FC = () => {
               <div className="p-4 bg-gray-50 rounded-lg">
                 <p className="text-sm text-gray-600 mb-1">Applicant Name</p>
                 <p className="text-lg font-bold text-gray-900">
-                  {loanData.customerName}
+                  {loanData.full_name || "Valued Customer"}
                 </p>
               </div>
 
               <div className="p-4 bg-gray-50 rounded-lg">
-                <p className="text-sm text-gray-600 mb-1">Email Address</p>
+                <p className="text-sm text-gray-600 mb-1">User ID</p>
                 <p className="text-base font-medium text-gray-900">
-                  {loanData.email}
+                  {loanData.user_id}
                 </p>
               </div>
             </div>
@@ -239,14 +221,17 @@ const PdfPage: React.FC = () => {
                   Loan Amount Approved
                 </p>
                 <p className="text-3xl font-bold text-primary-900">
-                  {formatCurrency(loanData.amount)}
+                  {formatCurrency(
+                    loanData.approved_amount || loanData.requested_amount,
+                  )}
                 </p>
               </div>
 
               <div className="p-4 bg-gray-50 rounded-lg">
                 <p className="text-sm text-gray-600 mb-1">Loan Tenure</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {loanData.tenure} Months
+                  {loanData.tenure_months || loanData.requested_tenure_months}{" "}
+                  Months
                 </p>
               </div>
             </div>
@@ -262,7 +247,7 @@ const PdfPage: React.FC = () => {
               <div className="p-4 bg-gray-50 rounded-lg">
                 <p className="text-sm text-gray-600 mb-1">Interest Rate</p>
                 <p className="text-xl font-bold text-gray-900">
-                  {loanData.interestRate}% p.a.
+                  {loanData.interest_rate}% p.a.
                 </p>
               </div>
 
@@ -296,10 +281,9 @@ const PdfPage: React.FC = () => {
             </h4>
             <div className="text-xs text-gray-700 space-y-2 leading-relaxed">
               <p>
-                This is a mock-up of the letter's main body text using
-                placeholder text to give an authentic document feel. The full
-                terms and conditions, repayment schedule, and other important
-                details are available in the complete PDF document.
+                This sanction letter confirms the approval of your personal loan
+                application. Please review all terms carefully before proceeding
+                with the loan disbursement process.
               </p>
               <p>
                 Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do
@@ -348,9 +332,9 @@ const PdfPage: React.FC = () => {
             leftIcon={<Download className="w-5 h-5" />}
             onClick={handleDownloadPDF}
             isLoading={isDownloading}
-            className="flex-1"
+            className="w-full"
           >
-            Download PDF
+            Download Sanction Letter
           </Button>
 
           <Button
@@ -385,11 +369,11 @@ const PdfPage: React.FC = () => {
           </Button>
         </div>
 
-        {/* Demo Notice */}
+        {/* Document Notice */}
         <div className="mt-8 text-center print:hidden">
           <p className="text-sm text-gray-500">
-            This is a system-generated letter and is valid for demonstration
-            purposes only.
+            This is a system-generated document. For any queries, please contact
+            our support team.
           </p>
         </div>
       </main>

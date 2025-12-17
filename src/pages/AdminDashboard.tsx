@@ -17,7 +17,7 @@ import MetricsCard from "../components/MetricsCard";
 import DataTable from "../components/DataTable";
 import Card from "../components/Card";
 import type { DashboardMetric, LoanRequestRow } from "../types";
-import { getDashboardMetrics, getRecentLoanApplications } from "../lib/api";
+import { getAdminMetrics, getAllLoans } from "../lib/api";
 
 interface NavItemProps {
   icon: React.ReactNode;
@@ -55,8 +55,8 @@ const AdminDashboard: React.FC = () => {
       setIsLoading(true);
       try {
         const [metricsResponse, applicationsResponse] = await Promise.all([
-          getDashboardMetrics(),
-          getRecentLoanApplications(),
+          getAdminMetrics(),
+          getAllLoans(),
         ]);
 
         if (metricsResponse.success && metricsResponse.data) {
@@ -77,7 +77,7 @@ const AdminDashboard: React.FC = () => {
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem("chat2sanction_user");
+    localStorage.removeItem("finagent_user");
     navigate("/login");
   };
 
@@ -87,7 +87,7 @@ const AdminDashboard: React.FC = () => {
     // navigate(`/admin/loans/${row.id}`);
   };
 
-  // Mock daily applications data for chart
+  // Daily applications data for chart
   const dailyApplicationsData = [
     { day: "Mon", count: 1100 },
     { day: "Tue", count: 1450 },

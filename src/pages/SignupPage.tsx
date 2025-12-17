@@ -1,33 +1,44 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { Mail, Lock, MessageSquare, ArrowRight, Sparkles } from "lucide-react";
+import { Mail, Lock, User, IndianRupee, ArrowRight, MessageSquare, Sparkles } from "lucide-react";
 import Button from "../components/Button";
 import Input from "../components/Input";
-import { login, validateEmail } from "../lib/api";
+import { register, validateEmail } from "../lib/api";
 
 interface FormData {
+  fullName: string;
   email: string;
   password: string;
-  rememberMe: boolean;
+  monthlyIncome: string;
+  existingEmi: string;
+  agree: boolean;
 }
 
 interface FormErrors {
+  fullName?: string;
   email?: string;
   password?: string;
+  monthlyIncome?: string;
+  existingEmi?: string;
+  agree?: string;
   general?: string;
 }
 
-const LoginPage: React.FC = () => {
+const SignupPage: React.FC = () => {
   const navigate = useNavigate();
+
   const [formData, setFormData] = useState<FormData>({
+    fullName: "",
     email: "",
     password: "",
-    rememberMe: false,
+    monthlyIncome: "",
+    existingEmi: "",
+    agree: false,
   });
+
   const [errors, setErrors] = useState<FormErrors>({});
   const [isLoading, setIsLoading] = useState(false);
 
-  // Handle input changes
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
     setFormData((prev) => ({
@@ -35,64 +46,81 @@ const LoginPage: React.FC = () => {
       [name]: type === "checkbox" ? checked : value,
     }));
 
-    // Clear field-specific error when user starts typing
     if (errors[name as keyof FormErrors]) {
       setErrors((prev) => ({ ...prev, [name]: undefined }));
     }
   };
 
-  // Validate form
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
 
-    // Email validation
+    if (!formData.fullName.trim()) {
+      newErrors.fullName = "Full name is required";
+    } else if (formData.fullName.trim().length < 2) {
+      newErrors.fullName = "Please enter a valid name";
+    }
+
     if (!formData.email) {
       newErrors.email = "Email is required";
     } else if (!validateEmail(formData.email)) {
       newErrors.email = "Please enter a valid email address";
     }
 
-    // Password validation
     if (!formData.password) {
       newErrors.password = "Password is required";
     } else if (formData.password.length < 6) {
       newErrors.password = "Password must be at least 6 characters";
     }
 
+    const monthlyIncomeNum = Number(formData.monthlyIncome);
+    if (formData.monthlyIncome === "") {
+      newErrors.monthlyIncome = "Monthly income is required";
+    } else if (Number.isNaN(monthlyIncomeNum) || monthlyIncomeNum <= 0) {
+      newErrors.monthlyIncome = "Please enter a valid positive number";
+    }
+
+    const existingEmiNum = Number(formData.existingEmi || 0);
+    if (formData.existingEmi && (Number.isNaN(existingEmiNum) || existingEmiNum < 0)) {
+      newErrors.existingEmi = "Please enter a valid non-negative number";
+    }
+
+    if (!formData.agree) {
+      newErrors.agree = "You must agree to the Terms and Privacy Policy";
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    // Clear general error
     setErrors((prev) => ({ ...prev, general: undefined }));
 
-    // Validate form
-    if (!validateForm()) {
-      return;
-    }
+    if (!validateForm()) return;
 
     setIsLoading(true);
 
     try {
-      const response = await login(formData.email, formData.password);
+      const response = await register(
+        formData.email,
+        formData.password,
+        formData.fullName.trim(),
+        Number(formData.monthlyIncome),
+        Number(formData.existingEmi || 0),
+      );
 
       if (response.success && response.data) {
-        // Store user data in localStorage
         localStorage.setItem("finagent_user", JSON.stringify(response.data));
-
-        // Navigate to chat page
         navigate("/chat");
       } else {
         setErrors({
-          general: response.error || "Login failed. Please try again.",
+          general: response.error || "Signup failed. Please try again.",
         });
       }
-    } catch (error) {
-      setErrors({ general: "An unexpected error occurred. Please try again." });
+    } catch (error: any) {
+      setErrors({
+        general: error?.message || "An unexpected error occurred. Please try again.",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -105,7 +133,6 @@ const LoginPage: React.FC = () => {
           {/* Left Column - Branding */}
           <div className="hidden lg:flex flex-col justify-center space-y-8 p-12">
             <div className="space-y-6">
-              {/* Logo and Brand */}
               <div className="flex items-center gap-4 mb-8">
                 <div className="w-16 h-16 rounded-2xl bg-gradient-success flex items-center justify-center shadow-lg">
                   <MessageSquare className="w-9 h-9 text-white" />
@@ -123,36 +150,27 @@ const LoginPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Tagline */}
               <div>
                 <h2 className="text-3xl font-bold text-gray-900 mb-4 leading-tight">
-                  AI-Powered Financial Agent
+                  Create your account
                   <br />
-                  <span className="text-primary-600">
-                    Intelligent Loan Processing
-                  </span>
+                  <span className="text-primary-600">Get instant loan decisions</span>
                 </h2>
                 <p className="text-lg text-gray-600 leading-relaxed">
-                  Get instant personal loan approval through our AI-powered
-                  chatbot. Simple, fast, and secure.
+                  Sign up to start your AI-assisted loan application journey.
                 </p>
               </div>
 
-              {/* Features */}
               <div className="space-y-4 pt-6">
                 {[
-                  "Instant approval in minutes",
-                  "Automated KYC verification",
+                  "Secure Firebase authentication",
                   "Smart eligibility check",
+                  "Instant loan offer recommendations",
                   "Downloadable sanction letter",
                 ].map((feature, index) => (
                   <div key={index} className="flex items-center gap-3">
                     <div className="w-6 h-6 rounded-full bg-primary-100 flex items-center justify-center">
-                      <svg
-                        className="w-4 h-4 text-primary-600"
-                        fill="currentColor"
-                        viewBox="0 0 20 20"
-                      >
+                      <svg className="w-4 h-4 text-primary-600" fill="currentColor" viewBox="0 0 20 20">
                         <path
                           fillRule="evenodd"
                           d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
@@ -167,7 +185,7 @@ const LoginPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Right Column - Login Form */}
+          {/* Right Column - Signup Form */}
           <div className="flex items-center justify-center">
             <div className="w-full max-w-md">
               {/* Mobile Logo */}
@@ -175,30 +193,20 @@ const LoginPage: React.FC = () => {
                 <div className="w-12 h-12 rounded-xl bg-gradient-success flex items-center justify-center shadow-lg">
                   <MessageSquare className="w-7 h-7 text-white" />
                 </div>
-                <h1 className="text-2xl font-bold text-gray-900 font-display">
-                  FinAgent
-                </h1>
+                <h1 className="text-2xl font-bold text-gray-900 font-display">FinAgent</h1>
               </div>
 
-              {/* Login Card */}
+              {/* Signup Card */}
               <div className="bg-white rounded-2xl shadow-elevated border border-gray-100 p-8">
                 <div className="mb-8">
-                  <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                    Sign in to continue
-                  </h2>
-                  <p className="text-gray-600">
-                    Welcome back! Please enter your credentials.
-                  </p>
+                  <h2 className="text-2xl font-bold text-gray-900 mb-2">Create your account</h2>
+                  <p className="text-gray-600">Join FinAgent and get started with your loan application.</p>
                 </div>
 
                 {/* General Error Alert */}
                 {errors.general && (
                   <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3 animate-fade-in">
-                    <svg
-                      className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
+                    <svg className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                       <path
                         fillRule="evenodd"
                         d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
@@ -209,9 +217,21 @@ const LoginPage: React.FC = () => {
                   </div>
                 )}
 
-                {/* Login Form */}
+                {/* Signup Form */}
                 <form onSubmit={handleSubmit} className="space-y-5">
-                  {/* Email Input */}
+                  <Input
+                    label="Full Name"
+                    type="text"
+                    name="fullName"
+                    placeholder="John Doe"
+                    value={formData.fullName}
+                    onChange={handleChange}
+                    error={errors.fullName}
+                    leftIcon={<User className="w-5 h-5" />}
+                    required
+                    autoComplete="name"
+                  />
+
                   <Input
                     label="Email Address"
                     type="email"
@@ -225,41 +245,68 @@ const LoginPage: React.FC = () => {
                     autoComplete="email"
                   />
 
-                  {/* Password Input */}
                   <Input
                     label="Password"
                     type="password"
                     name="password"
-                    placeholder="Enter your password"
+                    placeholder="Enter a secure password"
                     value={formData.password}
                     onChange={handleChange}
                     error={errors.password}
                     leftIcon={<Lock className="w-5 h-5" />}
                     required
-                    autoComplete="current-password"
+                    autoComplete="new-password"
                   />
 
-                  {/* Remember Me Checkbox */}
-                  <div className="flex items-center justify-between">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        name="rememberMe"
-                        checked={formData.rememberMe}
-                        onChange={handleChange}
-                        className="custom-checkbox"
-                      />
-                      <span className="text-sm text-gray-700">Remember me</span>
-                    </label>
-                    <button
-                      type="button"
-                      className="text-sm font-medium text-primary-600 hover:text-primary-700 transition-colors"
-                    >
-                      Forgot password?
-                    </button>
-                  </div>
+                  <Input
+                    label="Monthly Income (INR)"
+                    type="number"
+                    name="monthlyIncome"
+                    placeholder="50000"
+                    value={formData.monthlyIncome}
+                    onChange={handleChange}
+                    error={errors.monthlyIncome}
+                    leftIcon={<IndianRupee className="w-5 h-5" />}
+                    required
+                    min="0"
+                    step="1000"
+                  />
 
-                  {/* Login Button */}
+                  <Input
+                    label="Existing EMI (INR)"
+                    type="number"
+                    name="existingEmi"
+                    placeholder="0"
+                    value={formData.existingEmi}
+                    onChange={handleChange}
+                    error={errors.existingEmi}
+                    leftIcon={<IndianRupee className="w-5 h-5" />}
+                    min="0"
+                    step="500"
+                  />
+
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      name="agree"
+                      checked={formData.agree}
+                      onChange={handleChange}
+                      className="custom-checkbox"
+                    />
+                    <span className="text-sm text-gray-700">
+                      I agree to the{" "}
+                      <button type="button" className="text-primary-600 hover:underline">
+                        Terms of Service
+                      </button>{" "}
+                      and{" "}
+                      <button type="button" className="text-primary-600 hover:underline">
+                        Privacy Policy
+                      </button>
+                      .
+                    </span>
+                  </label>
+                  {errors.agree && <p className="text-xs text-red-600">{errors.agree}</p>}
+
                   <Button
                     type="submit"
                     variant="primary"
@@ -268,42 +315,25 @@ const LoginPage: React.FC = () => {
                     isLoading={isLoading}
                     rightIcon={<ArrowRight className="w-5 h-5" />}
                   >
-                    Login
+                    Create Account
                   </Button>
-
-                  {/* Divider */}
-                  <div className="relative my-6">
-                    <div className="absolute inset-0 flex items-center">
-                      <div className="w-full border-t border-gray-200" />
-                    </div>
-                    <div className="relative flex justify-center text-sm">
-                      <span className="px-4 bg-white text-gray-500">or</span>
-                    </div>
-                  </div>
                 </form>
 
-                {/* Terms and Privacy */}
                 <p className="mt-6 text-xs text-center text-gray-500">
-                  By continuing, you agree to our{" "}
-                  <button className="text-primary-600 hover:underline">
-                    Terms of Service
-                  </button>{" "}
-                  and{" "}
-                  <button className="text-primary-600 hover:underline">
-                    Privacy Policy
-                  </button>
-                  .
+                  Already have an account?{" "}
+                  <Link to="/login" className="text-primary-600 hover:underline font-medium">
+                    Sign in
+                  </Link>
                 </p>
               </div>
 
+              {/* Footer Note */}
               <p className="mt-6 text-sm text-center text-gray-600">
-                Don't have an account?{" "}
-                <Link
-                  to="/signup"
-                  className="font-semibold text-primary-600 hover:text-primary-700 transition-colors"
-                >
-                  Sign up now
+                Continue exploring as a{" "}
+                <Link to="/login" className="font-semibold text-primary-600 hover:text-primary-700 transition-colors">
+                  returning user
                 </Link>
+                .
               </p>
             </div>
           </div>
@@ -313,4 +343,4 @@ const LoginPage: React.FC = () => {
   );
 };
 
-export default LoginPage;
+export default SignupPage;

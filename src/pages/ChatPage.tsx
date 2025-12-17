@@ -13,6 +13,7 @@ import TopNavBar from "../components/TopNavBar";
 import Sidebar from "../components/Sidebar";
 import ChatBubble from "../components/ChatBubble";
 import Button from "../components/Button";
+import type { WorkflowStep } from "../types";
 import {
   sendMessage,
   getChatSession,
@@ -206,18 +207,18 @@ const ChatPage: React.FC = () => {
   };
 
   // Workflow steps based on current step
-  const workflowSteps = [
+  const workflowSteps: WorkflowStep[] = [
     {
       id: "welcome",
       label: "Welcome",
       description: "Getting started",
       status:
         currentStep === "WELCOME"
-          ? "current"
+          ? "active"
           : currentStep !== "WELCOME"
             ? "completed"
             : "pending",
-      icon: MessageSquare,
+      icon: "MessageSquare",
       order: 1,
     },
     {
@@ -226,26 +227,26 @@ const ChatPage: React.FC = () => {
       description: "Collecting information",
       status:
         currentStep === "GATHERING_DETAILS"
-          ? "current"
+          ? "active"
           : currentStep === "UNDERWRITING" ||
               currentStep === "SANCTION_GENERATED" ||
               currentStep === "REJECTED"
             ? "completed"
             : "pending",
-      icon: FileText,
+      icon: "FileText",
       order: 2,
     },
     {
       id: "underwriting",
       label: "Processing",
-      description: "AI evaluation",
+      description: "Evaluation",
       status:
         currentStep === "UNDERWRITING"
-          ? "current"
+          ? "active"
           : currentStep === "SANCTION_GENERATED" || currentStep === "REJECTED"
             ? "completed"
             : "pending",
-      icon: Clock,
+      icon: "Clock",
       order: 3,
     },
     {
@@ -256,7 +257,7 @@ const ChatPage: React.FC = () => {
         currentStep === "SANCTION_GENERATED" || currentStep === "REJECTED"
           ? "completed"
           : "pending",
-      icon: CheckCircle,
+      icon: "CheckCircle",
       order: 4,
     },
   ];
@@ -337,18 +338,27 @@ const ChatPage: React.FC = () => {
                         className={`flex items-center justify-center w-8 h-8 rounded-full ${
                           step.status === "completed"
                             ? "bg-green-100 text-green-600"
-                            : step.status === "current"
+                            : step.status === "active"
                               ? "bg-blue-100 text-blue-600"
                               : "bg-gray-100 text-gray-400"
                         }`}
                       >
-                        <step.icon className="w-4 h-4" />
+                        {step.icon === "MessageSquare" && (
+                          <MessageSquare className="w-4 h-4" />
+                        )}
+                        {step.icon === "FileText" && (
+                          <FileText className="w-4 h-4" />
+                        )}
+                        {step.icon === "Clock" && <Clock className="w-4 h-4" />}
+                        {step.icon === "CheckCircle" && (
+                          <CheckCircle className="w-4 h-4" />
+                        )}
                       </div>
                       <div>
                         <p
                           className={`text-sm font-medium ${
                             step.status === "completed" ||
-                            step.status === "current"
+                            step.status === "active"
                               ? "text-gray-900"
                               : "text-gray-400"
                           }`}
@@ -382,7 +392,13 @@ const ChatPage: React.FC = () => {
             {messages.map((message) => (
               <ChatBubble
                 key={message.id}
-                message={message}
+                message={
+                  {
+                    ...message,
+                    sender:
+                      message.sender === "assistant" ? "bot" : message.sender,
+                  } as any
+                }
                 onQuickReply={handleQuickReply}
               />
             ))}
@@ -391,7 +407,7 @@ const ChatPage: React.FC = () => {
             {isBotTyping && (
               <div className="flex items-start gap-3">
                 <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center text-white text-sm font-semibold">
-                  AI
+                  FA
                 </div>
                 <div className="flex-1 bg-white rounded-2xl rounded-tl-none px-4 py-3 shadow-sm border border-gray-200">
                   <div className="flex items-center gap-2">

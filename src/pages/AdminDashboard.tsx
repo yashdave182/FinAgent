@@ -16,8 +16,9 @@ import {
 import MetricsCard from "../components/MetricsCard";
 import DataTable from "../components/DataTable";
 import Card from "../components/Card";
-import type { DashboardMetric, LoanRequestRow } from "../types";
-import { getAdminMetrics, getAllLoans } from "../lib/api";
+import type { DashboardMetric, LoanRequestRow, LoanStatus } from "../types";
+import type { LoanApplication } from "../lib/api";
+import { getAdminMetrics, getAllLoans, formatCurrency } from "../lib/api";
 
 interface NavItemProps {
   icon: React.ReactNode;
@@ -60,11 +61,64 @@ const AdminDashboard: React.FC = () => {
         ]);
 
         if (metricsResponse.success && metricsResponse.data) {
-          setMetrics(metricsResponse.data);
+          // Transform AdminMetrics to DashboardMetric[]
+          const metricsData = metricsResponse.data;
+          const transformedMetrics: DashboardMetric[] = [
+            {
+              id: "total",
+              title: "Total Applications",
+              value: metricsData.total_applications,
+              subtitle: "All time",
+              icon: "FileText",
+            },
+            {
+              id: "approved",
+              title: "Approved",
+              value: metricsData.approved_count,
+              subtitle: "Total approved",
+              icon: "CheckCircle",
+            },
+            {
+              id: "rejected",
+              title: "Rejected",
+              value: metricsData.rejected_count,
+              subtitle: "Total rejected",
+              icon: "XCircle",
+            },
+            {
+              id: "average",
+              title: "Avg Loan Amount",
+              value: formatCurrency(metricsData.avg_loan_amount),
+              subtitle: "Average approved",
+              icon: "DollarSign",
+            },
+          ];
+          setMetrics(transformedMetrics);
         }
 
         if (applicationsResponse.success && applicationsResponse.data) {
-          setLoanApplications(applicationsResponse.data);
+          // Transform loan applications to LoanRequestRow[]
+          const loans: LoanApplication[] = applicationsResponse.data.loans;
+          const transformedLoans: LoanRequestRow[] = loans.map((loan) => {
+            // Map decision to valid LoanStatus
+            let status: LoanStatus = "under-review";
+            if (loan.decision === "APPROVED") {
+              status = "approved";
+            } else if (loan.decision === "REJECTED") {
+              status = "rejected";
+            }
+
+            return {
+              id: loan.loan_id,
+              customerName: loan.full_name || "N/A",
+              loanAmount: loan.approved_amount || loan.requested_amount,
+              status: status,
+              applicationDate: loan.created_at,
+              emi: loan.emi,
+              tenure: loan.tenure_months || loan.requested_tenure_months,
+            };
+          });
+          setLoanApplications(transformedLoans);
         }
       } catch (error) {
         console.error("Error fetching dashboard data:", error);
